@@ -120,6 +120,14 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 ),
                 const SizedBox(height: 20),
 
+
+                // Position Field
+                _buildTextField(
+                  controller: _positionController,
+                  label: "Password",
+                  icon: Icons.directions_run,
+                ),
+                const SizedBox(height: 20),
                 // Sport Field
                 _buildTextField(
                   controller: _sportController,
@@ -132,14 +140,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 20),
 
-                // Position Field
-                _buildTextField(
-                  controller: _positionController,
-                  label: "Position",
-                  icon: Icons.directions_run,
-                ),
+
+
                 const SizedBox(height: 20),
 
                 // Team Field
@@ -262,4 +265,3 @@ class _RegistrationPageState extends State<RegistrationPage> {
   }
 }
 
-//https://github.com/adam01051/athletehub.git

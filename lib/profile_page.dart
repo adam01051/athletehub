@@ -16,8 +16,66 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AthleteSettingsPage extends StatelessWidget {
+class AthleteSettingsPage extends StatefulWidget {
   const AthleteSettingsPage({super.key});
+
+  @override
+  State<AthleteSettingsPage> createState() => _AthleteSettingsPageState();
+}
+
+class _AthleteSettingsPageState extends State<AthleteSettingsPage> {
+  // Variables to hold the data, which will be updated using setState
+  String name = "Adam Smith";
+  String sportType = "Soccer";
+  String email = "adam@gmail.com";
+  String position = "Some position";
+
+  // TextEditingController for the dialog input
+  final TextEditingController _editController = TextEditingController();
+
+  // Function to show a dialog and update the field
+  Future<void> _showEditDialog(String fieldName, String currentValue, Function(String) onSave) async {
+    _editController.text = currentValue; // Pre-fill the dialog with the current value
+
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Edit $fieldName'),
+          content: TextField(
+            controller: _editController,
+            decoration: InputDecoration(
+              hintText: 'Enter new $fieldName',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+            ),
+            TextButton(
+              child: const Text('Save'),
+              onPressed: () {
+                setState(() {
+                  onSave(_editController.text); // Update the field with the new value
+                });
+                Navigator.of(context).pop(); // Close the dialog
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _editController.dispose(); // Dispose of the controller to avoid memory leaks
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +94,7 @@ class AthleteSettingsPage extends StatelessWidget {
         elevation: 0,
       ),
       body: Padding(
-        padding: const EdgeInsets.fromLTRB(30, 40, 30, 0),
+        padding: const EdgeInsets.fromLTRB(30, 30, 30, 0),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,7 +126,7 @@ class AthleteSettingsPage extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    "Adam Smith",
+                    name,
                     style: TextStyle(
                       color: Colors.amberAccent[400],
                       fontWeight: FontWeight.w500,
@@ -78,7 +136,9 @@ class AthleteSettingsPage extends StatelessWidget {
                   IconButton(
                     icon: const Icon(Icons.edit, color: Colors.grey),
                     onPressed: () {
-                      // Add edit name functionality
+                      _showEditDialog("Name", name, (newValue) {
+                        name = newValue; // Update the name using setState in the dialog
+                      });
                     },
                   ),
                 ],
@@ -107,7 +167,7 @@ class AthleteSettingsPage extends StatelessWidget {
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        "Soccer",
+                        sportType,
                         style: TextStyle(
                           color: Colors.amberAccent[400],
                           fontWeight: FontWeight.w500,
@@ -119,7 +179,9 @@ class AthleteSettingsPage extends StatelessWidget {
                   IconButton(
                     icon: const Icon(Icons.edit, color: Colors.grey),
                     onPressed: () {
-                      // Add edit sport functionality
+                      _showEditDialog("Sport Type", sportType, (newValue) {
+                        sportType = newValue; // Update the sport type
+                      });
                     },
                   ),
                 ],
@@ -148,7 +210,7 @@ class AthleteSettingsPage extends StatelessWidget {
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        "adam@gmail.com",
+                        email,
                         style: TextStyle(
                           color: Colors.amberAccent[400],
                           fontWeight: FontWeight.w500,
@@ -160,12 +222,14 @@ class AthleteSettingsPage extends StatelessWidget {
                   IconButton(
                     icon: const Icon(Icons.edit, color: Colors.grey),
                     onPressed: () {
-                      // Add edit email functionality
+                      _showEditDialog("Email", email, (newValue) {
+                        email = newValue; // Update the email
+                      });
                     },
                   ),
                 ],
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 20),
 
               // Additional Athlete Settings
               const Text(
@@ -177,29 +241,30 @@ class AthleteSettingsPage extends StatelessWidget {
                   letterSpacing: 1,
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 15),
 
               // Position
               _buildEditableField(
                 label: "Position",
-                value: "Some postion",
+                value: position,
                 icon: Icons.directions_run,
+                onEdit: () {
+                  _showEditDialog("Position", position, (newValue) {
+                    position = newValue; // Update the position
+                  });
+                },
               ),
-              const SizedBox(height: 20),
 
-              // Team
-              _buildEditableField(
-                label: "Team",
-                value: "Some team",
-                icon: Icons.group,
-              ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 15),
 
               // Save Button
               Center(
                 child: ElevatedButton(
                   onPressed: () {
-                    // Add save functionality here
+                    // Add save functionality here (e.g., save to backend)
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Changes Saved!')),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.amberAccent[400],
@@ -229,6 +294,7 @@ class AthleteSettingsPage extends StatelessWidget {
     required String label,
     required String value,
     required IconData icon,
+    required VoidCallback onEdit,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -265,9 +331,7 @@ class AthleteSettingsPage extends StatelessWidget {
             ),
             IconButton(
               icon: const Icon(Icons.edit, color: Colors.grey),
-              onPressed: () {
-                // Add edit functionality for this field
-              },
+              onPressed: onEdit, // Call the provided onEdit function
             ),
           ],
         ),
