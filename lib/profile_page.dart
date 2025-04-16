@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'user_data.dart';
 
 void main() {
   runApp(const MyApp());
@@ -24,18 +25,18 @@ class AthleteSettingsPage extends StatefulWidget {
 }
 
 class _AthleteSettingsPageState extends State<AthleteSettingsPage> {
-  // Variables to hold the data, which will be updated using setState
-  String name = "Adam Smith";
-  String sportType = "Soccer";
-  String email = "adam@gmail.com";
-  String position = "Some position";
+  // Variables to hold the data, initialized with values from UserData
+  String name = UserData().name ?? "Unknown";
+  String sportType = UserData().sport ?? "Soccer";
+  String email = UserData().email ?? "adam@gmail.com";
+  String position = UserData().position ?? "Some position";
 
   // TextEditingController for the dialog input
   final TextEditingController _editController = TextEditingController();
 
   // Function to show a dialog and update the field
   Future<void> _showEditDialog(String fieldName, String currentValue, Function(String) onSave) async {
-    _editController.text = currentValue; // Pre-fill the dialog with the current value
+    _editController.text = currentValue;
 
     return showDialog<void>(
       context: context,
@@ -46,23 +47,23 @@ class _AthleteSettingsPageState extends State<AthleteSettingsPage> {
             controller: _editController,
             decoration: InputDecoration(
               hintText: 'Enter new $fieldName',
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
             ),
           ),
           actions: <Widget>[
             TextButton(
               child: const Text('Cancel'),
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
               },
             ),
             TextButton(
               child: const Text('Save'),
               onPressed: () {
                 setState(() {
-                  onSave(_editController.text); // Update the field with the new value
+                  onSave(_editController.text);
                 });
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
               },
             ),
           ],
@@ -71,9 +72,25 @@ class _AthleteSettingsPageState extends State<AthleteSettingsPage> {
     );
   }
 
+  // Save the updated data to UserData
+  void _saveChanges() {
+    UserData().saveUserData(
+      name: name,
+      email: email,
+      password: UserData().password ?? "", // Preserve existing password
+      sport: sportType,
+      position: position,
+
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Changes Saved!')),
+    );
+  }
+
   @override
   void dispose() {
-    _editController.dispose(); // Dispose of the controller to avoid memory leaks
+    _editController.dispose();
     super.dispose();
   }
 
@@ -99,7 +116,6 @@ class _AthleteSettingsPageState extends State<AthleteSettingsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Profile Section Title
               const Text(
                 "Personal Information",
                 style: TextStyle(
@@ -110,8 +126,6 @@ class _AthleteSettingsPageState extends State<AthleteSettingsPage> {
                 ),
               ),
               const SizedBox(height: 20),
-
-              // Name
               const Text(
                 "Name",
                 style: TextStyle(
@@ -137,58 +151,15 @@ class _AthleteSettingsPageState extends State<AthleteSettingsPage> {
                     icon: const Icon(Icons.edit, color: Colors.grey),
                     onPressed: () {
                       _showEditDialog("Name", name, (newValue) {
-                        name = newValue; // Update the name using setState in the dialog
+                        name = newValue;
                       });
                     },
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
 
-              // Sport Type
-              const Text(
-                "Sport Type",
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 1,
-                  fontSize: 18,
-                ),
-              ),
-              const SizedBox(height: 5),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.sports_soccer,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        sportType,
-                        style: TextStyle(
-                          color: Colors.amberAccent[400],
-                          fontWeight: FontWeight.w500,
-                          fontSize: 20,
-                        ),
-                      ),
-                    ],
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.grey),
-                    onPressed: () {
-                      _showEditDialog("Sport Type", sportType, (newValue) {
-                        sportType = newValue; // Update the sport type
-                      });
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
 
-              // Email
+              const SizedBox(height: 20),
               const Text(
                 "Email",
                 style: TextStyle(
@@ -223,15 +194,13 @@ class _AthleteSettingsPageState extends State<AthleteSettingsPage> {
                     icon: const Icon(Icons.edit, color: Colors.grey),
                     onPressed: () {
                       _showEditDialog("Email", email, (newValue) {
-                        email = newValue; // Update the email
+                        email = newValue;
                       });
                     },
                   ),
                 ],
               ),
               const SizedBox(height: 20),
-
-              // Additional Athlete Settings
               const Text(
                 "Athlete Details",
                 style: TextStyle(
@@ -243,29 +212,63 @@ class _AthleteSettingsPageState extends State<AthleteSettingsPage> {
               ),
               const SizedBox(height: 15),
 
-              // Position
+              const Text(
+                "Sport Type",
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 1,
+                  fontSize: 18,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.sports_soccer,
+                        color: Colors.grey,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        sportType,
+                        style: TextStyle(
+                          color: Colors.amberAccent[400],
+                          fontWeight: FontWeight.w500,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.grey),
+                    onPressed: () {
+                      _showEditDialog("Sport Type", sportType, (newValue) {
+                        sportType = newValue;
+                      });
+                    },
+                  ),
+                ],
+              ),
+
+
+
               _buildEditableField(
                 label: "Position",
                 value: position,
                 icon: Icons.directions_run,
                 onEdit: () {
                   _showEditDialog("Position", position, (newValue) {
-                    position = newValue; // Update the position
+                    position = newValue;
                   });
                 },
               ),
-
               const SizedBox(height: 15),
-
-              // Save Button
               Center(
                 child: ElevatedButton(
-                  onPressed: () {
-                    // Add save functionality here (e.g., save to backend)
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Changes Saved!')),
-                    );
-                  },
+                  onPressed: _saveChanges, // Call the save method
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.amberAccent[400],
                     padding: const EdgeInsets.symmetric(
@@ -331,7 +334,7 @@ class _AthleteSettingsPageState extends State<AthleteSettingsPage> {
             ),
             IconButton(
               icon: const Icon(Icons.edit, color: Colors.grey),
-              onPressed: onEdit, // Call the provided onEdit function
+              onPressed: onEdit,
             ),
           ],
         ),

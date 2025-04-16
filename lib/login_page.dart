@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'profile_page.dart'; // Import profile page for navigation after login
+import 'package:postgres/postgres.dart';
+import 'home_page.dart';
+import 'user_data.dart';
 import 'registration_page.dart';
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -13,33 +16,88 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  // Database connection
+  Future<PostgreSQLConnection> _getConnection() async {
+    return PostgreSQLConnection(
+      '10.0.2.2', // Use this for Android emulator
+      5432,
+      'flutter',
+      username: 'postgres',
+      password: '4909770',
+    );
+  }
+
+  // Check credentials and fetch user data
+  Future<bool> _checkCredentials() async {
+    final connection = await _getConnection();
+    try {
+      await connection.open();
+      final results = await connection.query(
+        'SELECT * FROM users WHERE email = @email LIMIT 1',
+        substitutionValues: {'email': _emailController.text},
+      );
+
+      if (results.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Email not found')),
+        );
+        return false;
+      }
+
+      final user = results.first;
+      final storedPassword = user[3]; // Password is the 4th column (index 3)
+
+      if (storedPassword != _passwordController.text) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Incorrect password')),
+        );
+        return false;
+      }
+
+      // Update UserData with the fetched data
+      UserData().saveUserData(
+        name: user[1], // Name is the 2nd column (index 1)
+        email: user[2], // Email is the 3rd column (index 2)
+        password: user[3], // Password
+        sport: user[4], // Sport is the 5th column (index 4)
+        position: user[5], // Position is the 6th column (index 5)
+        team: user[6], // Team is the 7th column (index 6)
+      );
+
+      return true;
+    } catch (e) {
+      print('Error during login: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login failed: $e')),
+      );
+      return false;
+    } finally {
+      await connection.close();
+    }
+  }
+
+  Future<void> _login() async {
+    if (_formKey.currentState!.validate()) {
+      bool success = await _checkCredentials();
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Login Successful!')),
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => HomePage(email: _emailController.text),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
-  }
-
-  void _login() {
-    if (_formKey.currentState!.validate()) {
-      // Simulate login success (replace with actual authentication logic)
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login Successful!')),
-      );
-      // Navigate to ProfilePage with dummy data (replace with real data)
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const AthleteSettingsPage(
-            // name: "Adam Smith", // Dummy data
-            // email: "adamrandom@gmail.com",
-            // sport: "Soccer",
-            // position: "Midfielder",
-            // team: "City Strikers",
-          ),
-        ),
-      );
-    }
   }
 
   @override
@@ -64,7 +122,7 @@ class _LoginPageState extends State<LoginPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  "Login to AthleteHub",
+                  "Welcome Back!",
                   style: TextStyle(
                     color: Colors.grey,
                     fontSize: 22,
@@ -79,7 +137,9 @@ class _LoginPageState extends State<LoginPage> {
                   icon: Icons.email,
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
-                    if (value!.isEmpty) return 'Please enter your email';
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your email';
+                    }
                     if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
                       return 'Please enter a valid email';
                     }
@@ -92,8 +152,12 @@ class _LoginPageState extends State<LoginPage> {
                   label: "Password",
                   icon: Icons.lock,
                   obscureText: true,
-                  validator: (value) =>
-                  value!.isEmpty ? 'Please enter your password' : null,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your password';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 30),
                 Center(
@@ -104,6 +168,9 @@ class _LoginPageState extends State<LoginPage> {
                       padding: const EdgeInsets.symmetric(
                         horizontal: 40,
                         vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                     child: const Text(
@@ -118,16 +185,18 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 20),
                 Center(
-
-                  child:Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text("Need an account? ",style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
-                  ),),
+                      const Text(
+                        "Don't have an account? ",
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
                       TextButton(
                         onPressed: () {
                           Navigator.push(
@@ -140,15 +209,12 @@ class _LoginPageState extends State<LoginPage> {
                           style: TextStyle(
                             color: Colors.amberAccent[400],
                             fontSize: 14,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                     ],
-                  ) 
-                  
-                  
-                  
-                  
+                  ),
                 ),
               ],
             ),
@@ -199,6 +265,7 @@ class _LoginPageState extends State<LoginPage> {
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: Colors.amberAccent[400]!),
             ),
+            contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
           ),
         ),
       ],
