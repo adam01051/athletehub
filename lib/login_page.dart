@@ -61,7 +61,7 @@ class _LoginPageState extends State<LoginPage> {
         password: user[3], // Password
         sport: user[4], // Sport is the 5th column (index 4)
         position: user[5], // Position is the 6th column (index 5)
-        team: user[6], // Team is the 7th column (index 6)
+
       );
 
       return true;

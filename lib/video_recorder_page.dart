@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-// import 'package:path_provider/path_provider.dart';
+import 'package:camera/camera.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 
 class VideoRecorderPage extends StatefulWidget {
@@ -11,78 +13,151 @@ class VideoRecorderPage extends StatefulWidget {
 }
 
 class _VideoRecorderPageState extends State<VideoRecorderPage> {
-  bool _isRecording = false; // Placeholder for recording state
-  List<String> _videoFiles = []; // To store video file paths
-
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   _loadVideos(); // Load videos when the page opens
-  // }
-
-  // Future<void> _loadVideos() async {
-  //   try {
-  //     final directory = await getApplicationDocumentsDirectory();
-  //     final files = directory.listSync();
-  //     setState(() {
-  //       _videoFiles = files
-  //           .where((file) => file.path.endsWith('.mp4')) // Filter for .mp4 files
-  //           .map((file) => file.path)
-  //           .toList();
-  //     });
-  //   } catch (e) {
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(content: Text('Error loading videos: $e')),
-  //       );
-  //     }
-  //   }
-  // }
+  List<CameraDescription> cameras = [];
+  CameraController? cameraController;
+  bool _isRecording = false;
+  List<String> _videoFiles = [];
+  Future<void>? _initializeControllerFuture;
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[900],
-      appBar: AppBar(
-        title: Text(
-          "${widget.sport} Video Recorder",
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+  void initState() {
+    super.initState();
+    _setupCameraController();
+  }
+
+  Future<void> _setupCameraController() async {
+    try {
+      print('Requesting camera permission...');
+      var cameraStatus = await Permission.camera.request();
+      if (!cameraStatus.isGranted) {
+        print('Camera permission denied');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Camera permission denied')),
+        );
+        return;
+      }
+
+      print('Requesting storage permission...');
+      var storageStatus = await Permission.storage.request();
+      if (!storageStatus.isGranted) {
+        print('Storage permission not granted, trying media permission...');
+        var mediaStatus = await Permission.videos.request();
+        if (!mediaStatus.isGranted) {
+          print('Media permission denied');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Storage permission denied')),
+          );
+          return;
+        }
+      }
+
+      print('Fetching available cameras...');
+      List<CameraDescription> _cameras = await availableCameras();
+      print('Found ${_cameras.length} cameras');
+      if (_cameras.isNotEmpty) {
+        setState(() {
+          cameras = _cameras;
+          cameraController = CameraController(_cameras.first, ResolutionPreset.medium);
+        });
+
+        print('Initializing camera...');
+        _initializeControllerFuture = cameraController?.initialize();
+        await _initializeControllerFuture?.catchError((e) {
+          print('Camera initialization failed: $e');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Camera initialization failed: $e')),
+          );
+        });
+        if (mounted) {
+          setState(() {});
+        }
+      } else {
+        print('No cameras available');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No cameras available')),
+        );
+      }
+    } catch (e) {
+      print('Error setting up camera: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error setting up camera: $e')),
+      );
+    }
+  }
+
+  Future<String> _generateVideoPath() async {
+    final directory = await getExternalStorageDirectory();
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    return '${directory!.path}/${widget.sport}_$timestamp.mp4';
+  }
+
+  Future<void> _toggleRecording() async {
+    try {
+      if (!_isRecording) {
+        final path = await _generateVideoPath();
+        await cameraController!.startVideoRecording();
+        setState(() {
+          _isRecording = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Recording started')),
+        );
+      } else {
+        final XFile video = await cameraController!.stopVideoRecording();
+        final path = video.path;
+        setState(() {
+          _isRecording = false;
+          _videoFiles.add(path);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Recording stopped')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error during recording: $e')),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    cameraController?.dispose();
+    super.dispose();
+  }
+
+  Widget _buildUI() {
+    if (cameraController == null || cameraController?.value.isInitialized == false) {
+      return const Center(
+        child: Text(
+          'Camera not available on this device/emulator',
+          style: TextStyle(color: Colors.white),
         ),
-        backgroundColor: Colors.grey[800],
-        centerTitle: true,
-        elevation: 0,
-      ),
-      body: Column(
+      );
+    }
+    return SafeArea(
+      child: Column(
         children: [
           Expanded(
-            child: Center(
-              child: IconButton(
-                icon: Icon(
-                  _isRecording ? Icons.stop : Icons.videocam,
-                  color: Colors.amberAccent[400],
-                  size: 120, // Larger icon for prominence
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CameraPreview(cameraController!),
+                IconButton(
+                  icon: Icon(
+                    _isRecording ? Icons.stop : Icons.videocam,
+                    color: Colors.amberAccent[400],
+                    size: 120,
+                  ),
+                  onPressed: _toggleRecording,
                 ),
-                onPressed: () {
-                  // Placeholder for toggling recording
-                  setState(() {
-                    _isRecording = !_isRecording;
-                  });
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        _isRecording ? 'Recording started' : 'Recording stopped',
-                      ),
-                    ),
-                  );
-                },
-              ),
+              ],
             ),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             child: ElevatedButton.icon(
               onPressed: () {
-                // Show a dialog with the list of videos
                 showDialog(
                   context: context,
                   builder: (context) => AlertDialog(
@@ -150,7 +225,6 @@ class _VideoRecorderPageState extends State<VideoRecorderPage> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             child: ElevatedButton(
               onPressed: () {
-                // Placeholder for submit action
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Submitting...')),
                 );
@@ -173,6 +247,23 @@ class _VideoRecorderPageState extends State<VideoRecorderPage> {
           const SizedBox(height: 20),
         ],
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[900],
+      appBar: AppBar(
+        title: Text(
+          "${widget.sport} Video Recorder",
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+        ),
+        backgroundColor: Colors.grey[800],
+        centerTitle: true,
+        elevation: 0,
+      ),
+      body: _buildUI(),
     );
   }
 }
