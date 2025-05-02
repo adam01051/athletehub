@@ -1,253 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:camera/camera.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'record_video_page.dart';
 
-class VideoRecorderPage extends StatefulWidget {
-  final String sport;
-  const VideoRecorderPage({super.key, required this.sport});
+class VideoRecorderPage extends StatelessWidget {
+  const VideoRecorderPage({super.key});
 
-  @override
-  State<VideoRecorderPage> createState() => _VideoRecorderPageState();
-}
-
-class _VideoRecorderPageState extends State<VideoRecorderPage> {
-  List<CameraDescription> cameras = [];
-  CameraController? cameraController;
-  bool _isRecording = false;
-  List<String> _videoFiles = [];
-  Future<void>? _initializeControllerFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _setupCameraController();
-  }
-
-  Future<void> _setupCameraController() async {
+  Future<void> _pickFromGallery(BuildContext context) async {
     try {
-      print('Requesting camera permission...');
-      var cameraStatus = await Permission.camera.request();
-      if (!cameraStatus.isGranted) {
-        print('Camera permission denied');
+      final picker = ImagePicker();
+      final XFile? video = await picker.pickVideo(source: ImageSource.gallery);
+      if (video != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Camera permission denied')),
-        );
-        return;
-      }
-
-      print('Requesting storage permission...');
-      var storageStatus = await Permission.storage.request();
-      if (!storageStatus.isGranted) {
-        print('Storage permission not granted, trying media permission...');
-        var mediaStatus = await Permission.videos.request();
-        if (!mediaStatus.isGranted) {
-          print('Media permission denied');
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Storage permission denied')),
-          );
-          return;
-        }
-      }
-
-      print('Fetching available cameras...');
-      List<CameraDescription> _cameras = await availableCameras();
-      print('Found ${_cameras.length} cameras');
-      if (_cameras.isNotEmpty) {
-        setState(() {
-          cameras = _cameras;
-          cameraController = CameraController(_cameras.first, ResolutionPreset.medium);
-        });
-
-        print('Initializing camera...');
-        _initializeControllerFuture = cameraController?.initialize();
-        await _initializeControllerFuture?.catchError((e) {
-          print('Camera initialization failed: $e');
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Camera initialization failed: $e')),
-          );
-        });
-        if (mounted) {
-          setState(() {});
-        }
-      } else {
-        print('No cameras available');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No cameras available')),
-        );
-      }
-    } catch (e) {
-      print('Error setting up camera: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error setting up camera: $e')),
-      );
-    }
-  }
-
-  Future<String> _generateVideoPath() async {
-    final directory = await getExternalStorageDirectory();
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    return '${directory!.path}/${widget.sport}_$timestamp.mp4';
-  }
-
-  Future<void> _toggleRecording() async {
-    try {
-      if (!_isRecording) {
-        final path = await _generateVideoPath();
-        await cameraController!.startVideoRecording();
-        setState(() {
-          _isRecording = true;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Recording started')),
+          SnackBar(content: Text('Selected video: ${video.path.split('/').last}')),
         );
       } else {
-        final XFile video = await cameraController!.stopVideoRecording();
-        final path = video.path;
-        setState(() {
-          _isRecording = false;
-          _videoFiles.add(path);
-        });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Recording stopped')),
+          const SnackBar(content: Text('No video selected')),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error during recording: $e')),
+        SnackBar(content: Text('Error picking video: $e')),
       );
     }
-  }
-
-  @override
-  void dispose() {
-    cameraController?.dispose();
-    super.dispose();
-  }
-
-  Widget _buildUI() {
-    if (cameraController == null || cameraController?.value.isInitialized == false) {
-      return const Center(
-        child: Text(
-          'Camera not available on this device/emulator',
-          style: TextStyle(color: Colors.white),
-        ),
-      );
-    }
-    return SafeArea(
-      child: Column(
-        children: [
-          Expanded(
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CameraPreview(cameraController!),
-                IconButton(
-                  icon: Icon(
-                    _isRecording ? Icons.stop : Icons.videocam,
-                    color: Colors.amberAccent[400],
-                    size: 120,
-                  ),
-                  onPressed: _toggleRecording,
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            child: ElevatedButton.icon(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    backgroundColor: Colors.grey[800],
-                    title: const Text(
-                      "Video Archives",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    content: _videoFiles.isEmpty
-                        ? const Text(
-                      "No videos found.",
-                      style: TextStyle(color: Colors.grey),
-                    )
-                        : SizedBox(
-                      width: double.maxFinite,
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: _videoFiles.length,
-                        itemBuilder: (context, index) {
-                          final fileName = _videoFiles[index].split('/').last;
-                          return ListTile(
-                            title: Text(
-                              fileName,
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                            onTap: () {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Selected: $fileName')),
-                              );
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: Text(
-                          "Close",
-                          style: TextStyle(color: Colors.amberAccent[400]),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-              icon: const Icon(Icons.archive, color: Colors.black),
-              label: const Text(
-                "Archives",
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.amberAccent[400],
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            child: ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Submitting...')),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.amberAccent[400],
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              child: const Text(
-                "Submit",
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-        ],
-      ),
-    );
   }
 
   @override
@@ -255,15 +30,71 @@ class _VideoRecorderPageState extends State<VideoRecorderPage> {
     return Scaffold(
       backgroundColor: Colors.grey[900],
       appBar: AppBar(
-        title: Text(
-          "${widget.sport} Video Recorder",
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+        title: const Text(
+          "Video Recorder",
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
         ),
         backgroundColor: Colors.grey[800],
         centerTitle: true,
         elevation: 0,
       ),
-      body: _buildUI(),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              "Choose an option",
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+              ),
+            ),
+            const SizedBox(height: 40),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const RecordVideoPage()),
+                );
+              },
+              icon: const Icon(Icons.videocam, color: Colors.black),
+              label: const Text(
+                "Shoot New Video",
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amberAccent[400],
+                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () => _pickFromGallery(context),
+              icon: const Icon(Icons.photo_library, color: Colors.black),
+              label: const Text(
+                "Pick from Gallery",
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amberAccent[400],
+                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
