@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:id_card/test.dart';
 import 'welcome_page.dart';
 
 void main() {
@@ -12,7 +13,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const WelcomePage(),
+      // home: const WelcomePage(),
+        home: const TestPage(),
     );
   }
 }

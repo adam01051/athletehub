@@ -146,7 +146,7 @@ class _HomePageState extends State<HomePage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const VideoRecorderPage(sport: "Soccer"),
+                          builder: (_) => const VideoRecorderPage(),
                         ),
                       );
                     },
@@ -158,7 +158,7 @@ class _HomePageState extends State<HomePage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const VideoRecorderPage(sport: "Cricket"),
+                          builder: (_) => const VideoRecorderPage(),
                         ),
                       );
                     },
