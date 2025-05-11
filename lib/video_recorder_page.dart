@@ -19,6 +19,14 @@ class _VideoRecorderPageState extends State<VideoRecorderPage> {
   List<String> _videoFiles = [];
   Future<void>? _initializeControllerFuture;
 
+  // Test data variables
+  final TextEditingController _testNameController = TextEditingController();
+  final TextEditingController _scoreController = TextEditingController();
+  final TextEditingController _durationController = TextEditingController();
+  final TextEditingController _notesController = TextEditingController();
+
+  List<Map<String, String>> _testDataRecords = []; // Store test entries
+
   @override
   void initState() {
     super.initState();
@@ -222,11 +230,84 @@ class _VideoRecorderPageState extends State<VideoRecorderPage> {
             ),
           ),
           Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("Test Data", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                TextField(
+                  controller: _testNameController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Test Name',
+                    labelStyle: TextStyle(color: Colors.white70),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
+                  ),
+                ),
+                TextField(
+                  controller: _scoreController,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Score',
+                    labelStyle: TextStyle(color: Colors.white70),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
+                  ),
+                ),
+                TextField(
+                  controller: _durationController,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Duration (seconds)',
+                    labelStyle: TextStyle(color: Colors.white70),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
+                  ),
+                ),
+                TextField(
+                  controller: _notesController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Notes (optional)',
+                    labelStyle: TextStyle(color: Colors.white70),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             child: ElevatedButton(
               onPressed: () {
+                final testName = _testNameController.text.trim();
+                final score = _scoreController.text.trim();
+                final duration = _durationController.text.trim();
+                final notes = _notesController.text.trim();
+
+                if (testName.isEmpty || score.isEmpty || duration.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please fill in all required test fields.')),
+                  );
+                  return;
+                }
+
+                setState(() {
+                  _testDataRecords.add({
+                    'testName': testName,
+                    'score': score,
+                    'duration': duration,
+                    'notes': notes,
+                    'video': _videoFiles.isNotEmpty ? _videoFiles.last : 'No video',
+                  });
+                  _testNameController.clear();
+                  _scoreController.clear();
+                  _durationController.clear();
+                  _notesController.clear();
+                });
+
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Submitting...')),
+                  const SnackBar(content: Text('Test data submitted')),
                 );
               },
               style: ElevatedButton.styleFrom(
@@ -245,6 +326,48 @@ class _VideoRecorderPageState extends State<VideoRecorderPage> {
             ),
           ),
           const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (_) => AlertDialog(
+                  backgroundColor: Colors.grey[800],
+                  title: const Text(
+                    "Test Data Records",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  content: _testDataRecords.isEmpty
+                      ? const Text("No test data submitted.", style: TextStyle(color: Colors.grey))
+                      : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: _testDataRecords.map((record) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Text(
+                          'Test Name: ${record['testName']}\nScore: ${record['score']}\nDuration: ${record['duration']} sec\nNotes: ${record['notes'] ?? 'None'}\nVideo: ${record['video']}',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(
+                        "Close",
+                        style: TextStyle(color: Colors.amberAccent[400]),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+            child: const Text('View Test Data'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.amberAccent[400],
+            ),
+          ),
+          const SizedBox(height: 20),
         ],
       ),
     );
@@ -253,16 +376,7 @@ class _VideoRecorderPageState extends State<VideoRecorderPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[900],
-      appBar: AppBar(
-        title: Text(
-          "${widget.sport} Video Recorder",
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
-        ),
-        backgroundColor: Colors.grey[800],
-        centerTitle: true,
-        elevation: 0,
-      ),
+      appBar: AppBar(title: Text('Video Recorder: ${widget.sport}')),
       body: _buildUI(),
     );
   }
