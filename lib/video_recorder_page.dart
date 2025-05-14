@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:id_card/submission_confirmation_page.dart'; // Import new page
 import 'dart:io';
 
 class VideoRecorderPage extends StatefulWidget {
-  final String sport; // Add sport parameter
-  const VideoRecorderPage({super.key, required this.sport}); // Update constructor
+  final String sport;
+  const VideoRecorderPage({super.key, required this.sport});
 
   @override
   State<VideoRecorderPage> createState() => _VideoRecorderPageState();
@@ -65,7 +66,7 @@ class _VideoRecorderPageState extends State<VideoRecorderPage> {
       backgroundColor: Colors.grey[900],
       appBar: AppBar(
         title: Text(
-          "Video Recorder: ${widget.sport}", // Update title to use sport
+          "Video Recorder: ${widget.sport}",
           style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
         ),
         backgroundColor: Colors.grey[800],
@@ -151,6 +152,41 @@ class _VideoRecorderPageState extends State<VideoRecorderPage> {
               icon: const Icon(Icons.videocam, color: Colors.black),
               label: const Text(
                 "Pick from Camera",
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amberAccent[400],
+                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Submit Button
+            ElevatedButton.icon(
+              onPressed: () {
+                if (videoFile == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please select or record a video first')),
+                  );
+                  return;
+                }
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SubmissionConfirmationPage(
+                      sport: widget.sport,
+                      videoPath: videoFile!.path,
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.upload, color: Colors.black),
+              label: const Text(
+                "Submit",
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 16,

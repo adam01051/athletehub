@@ -1,0 +1,33 @@
+-- Create the Users table
+CREATE TABLE Users (
+    user_id SERIAL PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create the Videos table with BYTEA for video data
+CREATE TABLE Videos (
+    video_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    sport VARCHAR(50) NOT NULL,
+    video_data BYTEA NOT NULL, -- Store the video binary data
+    file_name VARCHAR(100), -- Optional: store the original file name
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
+);
+
+-- Create the AnalysisResults table
+CREATE TABLE AnalysisResults (
+    result_id SERIAL PRIMARY KEY,
+    video_id INT NOT NULL,
+    speed VARCHAR(20),
+    strength VARCHAR(20),
+    curve VARCHAR(20),
+    analyzed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (video_id) REFERENCES Videos(video_id) ON DELETE CASCADE
+);
+
+-- Create indexes for better query performance
+CREATE INDEX idx_videos_user_id ON Videos(user_id);
+CREATE INDEX idx_analysis_results_video_id ON AnalysisResults(video_id);
