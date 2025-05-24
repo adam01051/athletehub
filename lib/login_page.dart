@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:postgres/postgres.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'home_page.dart';
 import 'user_data.dart';
 import 'registration_page.dart';
@@ -16,54 +17,41 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  // Database connection
-  Future<PostgreSQLConnection> _getConnection() async {
-    return PostgreSQLConnection(
-      '10.0.2.2', // Use this for Android emulator
-      5432,
-      'flutter',
-      username: 'postgres',
-      password: '4909770',
-    );
-  }
-
-  // Check credentials and fetch user data
   Future<bool> _checkCredentials() async {
-    final connection = await _getConnection();
     try {
-      await connection.open();
-      final results = await connection.query(
-        'SELECT * FROM users WHERE email = @email LIMIT 1',
-        substitutionValues: {'email': _emailController.text},
+      print('Sending login request to backend at http://172.19.21.130:8080/api/login');
+      final response = await http.post(
+        Uri.parse('http://172.19.21.130:8080/api/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': _emailController.text,
+          'password': _passwordController.text,
+        }),
       );
 
-      if (results.isEmpty) {
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode != 200) {
+        final error = jsonDecode(response.body)['error'] ?? 'Login failed';
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Email not found')),
+          SnackBar(content: Text(error)),
         );
         return false;
       }
 
-      final user = results.first;
-      final storedPassword = user[3]; // Password is the 4th column (index 3)
+      final data = jsonDecode(response.body);
+      final user = data['user'];
 
-      if (storedPassword != _passwordController.text) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Incorrect password')),
-        );
-        return false;
-      }
-
-      // Update UserData with the fetched data
       UserData().saveUserData(
-        name: user[1], // Name is the 2nd column (index 1)
-        email: user[2], // Email is the 3rd column (index 2)
-        password: user[3], // Password
-        sport: user[4], // Sport is the 5th column (index 4)
-        position: user[5], // Position is the 6th column (index 5)
+        name: user['name'],
+        email: user['email'],
+        password: _passwordController.text,
+        sport: user['sport'],
 
       );
 
+      print('User data saved successfully');
       return true;
     } catch (e) {
       print('Error during login: $e');
@@ -71,8 +59,6 @@ class _LoginPageState extends State<LoginPage> {
         SnackBar(content: Text('Login failed: $e')),
       );
       return false;
-    } finally {
-      await connection.close();
     }
   }
 

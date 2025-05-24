@@ -29,7 +29,7 @@ class _AthleteSettingsPageState extends State<AthleteSettingsPage> {
   String name = UserData().name ?? "Unknown";
   String sportType = UserData().sport ?? "Soccer";
   String email = UserData().email ?? "adam@gmail.com";
-  String position = UserData().position ?? "Some position";
+
 
   // TextEditingController for the dialog input
   final TextEditingController _editController = TextEditingController();
@@ -79,7 +79,7 @@ class _AthleteSettingsPageState extends State<AthleteSettingsPage> {
       email: email,
       password: UserData().password ?? "", // Preserve existing password
       sport: sportType,
-      position: position,
+
 
     );
 
@@ -255,16 +255,7 @@ class _AthleteSettingsPageState extends State<AthleteSettingsPage> {
 
 
 
-              _buildEditableField(
-                label: "Position",
-                value: position,
-                icon: Icons.directions_run,
-                onEdit: () {
-                  _showEditDialog("Position", position, (newValue) {
-                    position = newValue;
-                  });
-                },
-              ),
+
               const SizedBox(height: 15),
               Center(
                 child: ElevatedButton(

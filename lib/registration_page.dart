@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:postgres/postgres.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'login_page.dart';
 import 'home_page.dart';
 import 'user_data.dart';
@@ -32,83 +33,65 @@ class _RegistrationPageState extends State<RegistrationPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _sportController = TextEditingController();
-  final TextEditingController _positionController = TextEditingController();
-
   final TextEditingController _passwordController = TextEditingController();
 
-  // Database connection
-  Future<PostgreSQLConnection> _getConnection() async {
-    return PostgreSQLConnection(
-      '10.0.2.2', // Use this for Android emulator
-      5432,
-      'flutter',
-      username: 'postgres',
-      password: '4909770',
-    );
-  }
-
-  // Save user data to PostgreSQL
-  Future<void> _saveToDatabase() async {
-    final connection = await _getConnection();
+  Future<bool> _registerUser() async {
     try {
-      await connection.open();
-      await connection.execute(
-        '''
-        INSERT INTO users (name, email, password, sport, position, team)
-        VALUES (@name, @email, @password, @sport, @position, @team)
-        ''',
-        substitutionValues: {
+      print('Sending registration request to http://172.19.21.130:8080/api/register');
+      final response = await http.post(
+        Uri.parse('http://172.19.21.130:8080/api/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
           'name': _nameController.text,
           'email': _emailController.text,
           'password': _passwordController.text,
           'sport': _sportController.text,
-          'position': _positionController.text.isNotEmpty ? _positionController.text : null,
+        }),
+      );
 
-        },
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode != 200) {
+        final error = jsonDecode(response.body)['error'] ?? 'Registration failed';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error)),
+        );
+        return false;
+      }
+
+      final data = jsonDecode(response.body);
+      UserData().saveUserData(
+        name: _nameController.text,
+        email: _emailController.text,
+        password: _passwordController.text,
+        sport: _sportController.text,
       );
+
+      print('User data saved successfully');
+      return true;
     } catch (e) {
-      print('Error saving to database: $e');
+      print('Error during registration: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to register: $e')),
+        SnackBar(content: Text('Registration failed: $e')),
       );
-      rethrow;
-    } finally {
-      await connection.close();
+      return false;
     }
   }
 
   Future<void> _register() async {
     if (_formKey.currentState!.validate()) {
-      try {
-        // Save to PostgreSQL
-        await _saveToDatabase();
-
-        // Save to UserData singleton for in-memory access
-        UserData().saveUserData(
-          name: _nameController.text,
-          email: _emailController.text,
-          password: _passwordController.text,
-          sport: _sportController.text,
-          position: _positionController.text.isNotEmpty ? _positionController.text : null,
-
-        );
-
-        print("Saved user data: ${UserData().name}, ${UserData().email}");
-
-        // Show success message
+      bool success = await _registerUser();
+      if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Registration Successful!')),
         );
-
-        // Navigate to HomePage
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (_) => HomePage(email: _emailController.text),
           ),
         );
-      } catch (e) {
-        // Error already handled in _saveToDatabase
       }
     }
   }
@@ -118,8 +101,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
     _nameController.dispose();
     _emailController.dispose();
     _sportController.dispose();
-    _positionController.dispose();
-
     _passwordController.dispose();
     super.dispose();
   }
@@ -210,14 +191,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 20),
-                _buildTextField(
-                  controller: _positionController,
-                  label: "Position",
-                  icon: Icons.directions_run,
-                ),
-
-
                 const SizedBox(height: 30),
                 Center(
                   child: ElevatedButton(

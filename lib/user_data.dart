@@ -6,19 +6,19 @@ class UserData {
   String? email;
   String? password;
   String? sport;
-  String? position;
+
   void saveUserData({
     required String name,
     required String email,
     required String password,
     required String sport,
-    String? position,
+
   }) {
     this.name = name;
     this.email = email;
     this.password = password;
     this.sport = sport;
-    this.position = position;
+
   }
   void clearUserData() {
 
@@ -26,7 +26,7 @@ class UserData {
     email = null;
     password = null;
     sport = null;
-    position = null;
+
 
   }
 }
