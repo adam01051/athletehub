@@ -1,7 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:id_card/submission_confirmation_page.dart'; // Import new page
 import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'submission_confirmation_page.dart';
+import 'user_data.dart';
 
 class VideoRecorderPage extends StatefulWidget {
   final String sport;
@@ -13,6 +16,7 @@ class VideoRecorderPage extends StatefulWidget {
 
 class _VideoRecorderPageState extends State<VideoRecorderPage> {
   File? videoFile;
+  bool _isAnalyzing = false;
 
   Future<void> _pickFromGallery() async {
     try {
@@ -32,7 +36,7 @@ class _VideoRecorderPageState extends State<VideoRecorderPage> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking video from gallery: $e')),
+        SnackBar(content: Text('Error picking video: $e')),
       );
     }
   }
@@ -60,6 +64,90 @@ class _VideoRecorderPageState extends State<VideoRecorderPage> {
     }
   }
 
+  Future<void> _analyzeVideo() async {
+    if (_isAnalyzing || videoFile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Analysis in progress or no video selected')),
+      );
+      return;
+    }
+
+    _isAnalyzing = true;
+    const apiUrl = 'https://fc8c-182-224-246-229.ngrok-free.app/analyze';
+    print('Analysis URL: $apiUrl');
+
+    // Store video path locally to avoid null issues after setState
+    final String videoPath = videoFile!.path;
+
+    try {
+      var request = http.MultipartRequest('POST', Uri.parse(apiUrl));
+      request.files.add(await http.MultipartFile.fromPath(
+        'video',
+        videoPath,
+        filename: videoPath.split('/').last,
+      ));
+
+      final client = http.Client();
+      final response = await client.send(request).timeout(
+        const Duration(seconds: 120),
+        onTimeout: () {
+          client.close();
+          throw Exception('Analysis timed out');
+        },
+      );
+      print('Received response with status: ${response.statusCode}');
+      print('Response headers: ${response.headers}');
+
+      final responseBody = await response.stream.bytesToString();
+      print('Response body: $responseBody');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(responseBody);
+        final results = data['results'] ?? data; // Fallback if 'results' key isn't present
+        final videoPathFromApi = data['video_path'] as String?;
+        if (mounted) {
+          UserData().saveVideoData(
+            videoPath: videoPath,
+            analysisResults: results,
+          );
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SubmissionConfirmationPage(
+                sport: widget.sport,
+                videoPath: videoPath,
+                analysisResults: results,
+                annotatedVideoUrl: videoPathFromApi != null
+                    ? 'https://fc8c-182-224-246-229.ngrok-free.app/$videoPathFromApi'
+                    : null,
+              ),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Analysis failed: $responseBody')),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error during analysis: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Analysis failed: $e')),
+        );
+      }
+    } finally {
+      _isAnalyzing = false;
+      if (mounted) {
+        setState(() {
+          videoFile = null;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -77,7 +165,6 @@ class _VideoRecorderPageState extends State<VideoRecorderPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Video Placeholder
             Container(
               width: 300,
               height: 200,
@@ -127,7 +214,6 @@ class _VideoRecorderPageState extends State<VideoRecorderPage> {
               ),
             ),
             const SizedBox(height: 40),
-            // Pick from Gallery Button
             ElevatedButton.icon(
               onPressed: _pickFromGallery,
               icon: const Icon(Icons.photo_library, color: Colors.black),
@@ -146,7 +232,6 @@ class _VideoRecorderPageState extends State<VideoRecorderPage> {
               ),
             ),
             const SizedBox(height: 20),
-            // Pick from Camera Button
             ElevatedButton.icon(
               onPressed: _pickFromCamera,
               icon: const Icon(Icons.videocam, color: Colors.black),
@@ -165,28 +250,11 @@ class _VideoRecorderPageState extends State<VideoRecorderPage> {
               ),
             ),
             const SizedBox(height: 20),
-            // Submit Button
             ElevatedButton.icon(
-              onPressed: () {
-                if (videoFile == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please select or record a video first')),
-                  );
-                  return;
-                }
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SubmissionConfirmationPage(
-                      sport: widget.sport,
-                      videoPath: videoFile!.path,
-                    ),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.upload, color: Colors.black),
+              onPressed: _analyzeVideo,
+              icon: const Icon(Icons.analytics, color: Colors.black),
               label: const Text(
-                "Submit",
+                "Analyze Video",
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 16,

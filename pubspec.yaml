@@ -54,6 +54,9 @@ dev_dependencies:
 
   camera: ^0.10.5+5
   image_picker: ^1.1.2
+  file_picker: ^8.0.0  # Add this
+  http: ^0.13.5
+  url_launcher: ^6.1.5
 
 
 # For information on the generic Dart part of this file, see the

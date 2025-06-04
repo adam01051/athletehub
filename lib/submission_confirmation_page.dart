@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:id_card/results_page.dart'; // Import ResultsPage
+import 'results_page.dart';
 
 class SubmissionConfirmationPage extends StatelessWidget {
   final String sport;
   final String videoPath;
+  final Map<String, dynamic> analysisResults;
+  final String? annotatedVideoUrl;
 
-  const SubmissionConfirmationPage({super.key, required this.sport, required this.videoPath});
+  const SubmissionConfirmationPage({
+    super.key,
+    required this.sport,
+    required this.videoPath,
+    required this.analysisResults,
+    this.annotatedVideoUrl,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -26,24 +34,25 @@ class SubmissionConfirmationPage extends StatelessWidget {
           children: [
             const Icon(
               Icons.check_circle,
-              color: Colors.amberAccent,
+              color: Colors.green,
               size: 80,
             ),
             const SizedBox(height: 20),
-            const Text(
-              "Submission Successful!",
+            Text(
+              "Video Submission Successful!",
               style: TextStyle(
-                color: Colors.white,
+                color: Colors.amberAccent[400],
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 20),
             Text(
               "Sport: $sport",
               style: const TextStyle(
                 color: Colors.grey,
                 fontSize: 18,
+                fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(height: 10),
@@ -51,11 +60,13 @@ class SubmissionConfirmationPage extends StatelessWidget {
               "Video: ${videoPath.split('/').last}",
               style: const TextStyle(
                 color: Colors.grey,
-                fontSize: 16,
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
               ),
+              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 30),
-            ElevatedButton.icon(
+            const SizedBox(height: 40),
+            ElevatedButton(
               onPressed: () {
                 Navigator.push(
                   context,
@@ -63,23 +74,43 @@ class SubmissionConfirmationPage extends StatelessWidget {
                     builder: (context) => ResultsPage(
                       sport: sport,
                       videoPath: videoPath,
+                      analysisResults: analysisResults,
+                      annotatedVideoUrl: annotatedVideoUrl,
                     ),
                   ),
                 );
               },
-              icon: const Icon(Icons.visibility, color: Colors.black),
-              label: const Text(
-                "View Results",
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amberAccent[400],
+                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text(
+                "Result",
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // Go back to previous page
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.amberAccent[400],
                 padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text(
+                "Back",
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],

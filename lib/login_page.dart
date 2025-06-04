@@ -19,9 +19,9 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<bool> _checkCredentials() async {
     try {
-      print('Sending login request to backend at http://172.19.21.130:8080/api/login');
+      print('Sending login request to backend at http://172.16.122.51:8080/api/login');
       final response = await http.post(
-        Uri.parse('http://172.19.21.130:8080/api/login'),
+        Uri.parse('http://${UserData.backendIp}:8080/api/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': _emailController.text,
@@ -41,17 +41,13 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       final data = jsonDecode(response.body);
-      final user = data['user'];
-
       UserData().saveUserData(
-        name: user['name'],
-        email: user['email'],
+        name: data['user']['name'],
+        email: data['user']['email'],
         password: _passwordController.text,
-        sport: user['sport'],
-
+        sport: data['user']['sport'],
       );
 
-      print('User data saved successfully');
       return true;
     } catch (e) {
       print('Error during login: $e');
@@ -108,7 +104,7 @@ class _LoginPageState extends State<LoginPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  "Welcome Back!",
+                  "Welcome Back",
                   style: TextStyle(
                     color: Colors.grey,
                     fontSize: 22,
@@ -141,6 +137,9 @@ class _LoginPageState extends State<LoginPage> {
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your password';
+                    }
+                    if (value.length < 6) {
+                      return 'Password must be at least 6 characters';
                     }
                     return null;
                   },

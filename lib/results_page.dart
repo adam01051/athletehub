@@ -1,18 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ResultsPage extends StatelessWidget {
   final String sport;
   final String videoPath;
+  final Map<String, dynamic> analysisResults;
+  final String? annotatedVideoUrl;
 
-  const ResultsPage({super.key, required this.sport, required this.videoPath});
+  const ResultsPage({
+    super.key,
+    required this.sport,
+    required this.videoPath,
+    required this.analysisResults,
+    this.annotatedVideoUrl,
+  });
+
+  Future<void> _launchVideo(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      throw 'Could not launch video: $url';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Placeholder values for Speed, Strength, and Curve
+    // Map API results to display
     final Map<String, String> metrics = {
-      'Speed': '85 mph',
-      'Strength': '72%',
-      'Curve': 'Moderate',
+      'Speed': '${analysisResults['max_speed'] ?? 'N/A'} m/s',
+      'Average Speed': '${analysisResults['avg_speed'] ?? 'N/A'} m/s',
+      'Final Speed': '${analysisResults['final_speed'] ?? 'N/A'} m/s',
+      'Swing': '${analysisResults['swing'] ?? 'N/A'} m',
+      'Spin': '${analysisResults['spin'] ?? 'N/A'}',
+      'Confidence': '${analysisResults['confidence'] ?? 'N/A'}',
     };
 
     return Scaffold(
@@ -111,6 +132,44 @@ class ResultsPage extends StatelessWidget {
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            if (annotatedVideoUrl != null)
+              ElevatedButton.icon(
+                onPressed: () => _launchVideo(annotatedVideoUrl!),
+                icon: const Icon(Icons.play_arrow, color: Colors.black),
+                label: const Text(
+                  "View Annotated Video",
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.amberAccent[400],
+                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // Go back to confirmation page
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amberAccent[400],
+                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text(
+                "Back",
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),

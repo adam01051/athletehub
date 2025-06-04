@@ -39,7 +39,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
     try {
       print('Sending registration request to http://172.19.21.130:8080/api/register');
       final response = await http.post(
-        Uri.parse('http://172.19.21.130:8080/api/register'),
+        Uri.parse('http://${UserData.backendIp}:8080/api/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'name': _nameController.text,
