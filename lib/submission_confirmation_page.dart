@@ -6,6 +6,7 @@ class SubmissionConfirmationPage extends StatelessWidget {
   final String videoPath;
   final Map<String, dynamic> analysisResults;
   final String? annotatedVideoUrl;
+  final Map<String, dynamic>? videoFormat; // New parameter
 
   const SubmissionConfirmationPage({
     super.key,
@@ -13,6 +14,7 @@ class SubmissionConfirmationPage extends StatelessWidget {
     required this.videoPath,
     required this.analysisResults,
     this.annotatedVideoUrl,
+    this.videoFormat,
   });
 
   @override
@@ -65,6 +67,42 @@ class SubmissionConfirmationPage extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
+            if (videoFormat != null) ...[
+              const SizedBox(height: 20),
+              Text(
+                "Video Format:",
+                style: TextStyle(
+                  color: Colors.amberAccent[400],
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                "Codec: ${videoFormat!['codec'] ?? 'N/A'}",
+                style: const TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                "Resolution: ${videoFormat!['resolution'] ?? 'N/A'}",
+                style: const TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                "Frame Rate: ${videoFormat!['frame_rate'] ?? 'N/A'} fps",
+                style: const TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
             const SizedBox(height: 40),
             ElevatedButton(
               onPressed: () {
@@ -76,6 +114,7 @@ class SubmissionConfirmationPage extends StatelessWidget {
                       videoPath: videoPath,
                       analysisResults: analysisResults,
                       annotatedVideoUrl: annotatedVideoUrl,
+                      videoFormat: videoFormat, // Pass video format to ResultsPage
                     ),
                   ),
                 );

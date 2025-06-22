@@ -73,10 +73,9 @@ class _VideoRecorderPageState extends State<VideoRecorderPage> {
     }
 
     _isAnalyzing = true;
-    const apiUrl = 'https://fc8c-182-224-246-229.ngrok-free.app/analyze';
+    const apiUrl = 'https://${UserData.serverIP}/analyze'; // Updated ngrok URL
     print('Analysis URL: $apiUrl');
 
-    // Store video path locally to avoid null issues after setState
     final String videoPath = videoFile!.path;
 
     try {
@@ -103,8 +102,8 @@ class _VideoRecorderPageState extends State<VideoRecorderPage> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(responseBody);
-        final results = data['results'] ?? data; // Fallback if 'results' key isn't present
-        final videoPathFromApi = data['video_path'] as String?;
+        final results = data['results'] ?? data;
+        final videoPathFromApi = data['output_video_path'] as String?;
         if (mounted) {
           UserData().saveVideoData(
             videoPath: videoPath,
@@ -118,7 +117,7 @@ class _VideoRecorderPageState extends State<VideoRecorderPage> {
                 videoPath: videoPath,
                 analysisResults: results,
                 annotatedVideoUrl: videoPathFromApi != null
-                    ? 'https://fc8c-182-224-246-229.ngrok-free.app/$videoPathFromApi'
+                    ? 'https://1fc5-115-91-214-5.ngrok-free.app/$videoPathFromApi'
                     : null,
               ),
             ),

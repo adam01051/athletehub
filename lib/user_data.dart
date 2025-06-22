@@ -7,6 +7,7 @@ class UserData {
   // Static backend IP address
   static const String backendIp = '172.16.122.51';
 
+  static const String serverIP = '1fc5-115-91-214-5.ngrok-free.app';
 
   // User data fields
   String? name;
